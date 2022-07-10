@@ -24,7 +24,8 @@ const middleware= (req,res,next) =>{
 app.get('/',(req,res)=>{
     res.send("Welcome to Activity Point Management");
 });
-app.get('/Signin', middleware, (req,res)=>{
+app.get('/Login', middleware, (req,res)=>{
+    res.cookie("Test", 'nandu');
     res.send("Welcome to Activity Point Management-Sign In");
 });
 app.get('/Yearly',(req,res)=>{

@@ -1,3 +1,6 @@
+
+const jwt = require('jsonwebtoken');
+const { compare } = require('bcryptjs');
 const express = require('express');
 
 const router = express.Router();
@@ -66,6 +69,7 @@ router.post('/Login', async (req, res) => {
     //console.log(req.body);
     //res.json({message:"logged in"});
     try{
+         let token;
          const { username, password } = req.body;
 
          if(!username || !password){
@@ -73,12 +77,32 @@ router.post('/Login', async (req, res) => {
          }
 
          const userLogin = await Login.findOne({username: username});  
-         console.log(userLogin);
-         if(!userLogin){
-         res.status(400).json({error:"user error"});  
-         }     else{
-                res.json({message:"user logged in successfully"})
-         }
+         //console.log(userLogin);
+
+         if(userLogin){
+            const isMatch = await compare(password, userLogin.password);
+             
+            token = await userLogin.generateAuthToken();
+            console.log(token);
+
+            // res.cookie("jwtoken", token, {
+            //     expires:new Date(Date.now() + 25892000000),
+            //     httpOnly:true
+            // });
+
+            if(isMatch){
+                res.status(400).json({error:"invalid credentials"});
+            }else{
+                res.json({
+                    status:"SUCCESS",
+                    message:"user logged in successfully",
+                    token: token,
+                    role: userLogin.userType
+                })
+            }
+         }else{
+            res.status(400).json({error:"invalid credentials"});
+         }     
     }catch(err){
         console.log(err);
     }
