@@ -1,4 +1,3 @@
-
 const jwt = require('jsonwebtoken');
 const { compare } = require('bcryptjs');
 const express = require('express');
@@ -107,5 +106,7 @@ router.post('/Login', async (req, res) => {
         console.log(err);
     }
 })
+
+//router.patch()
 
 module.exports = router ;

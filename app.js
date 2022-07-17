@@ -21,15 +21,12 @@ const middleware= (req,res,next) =>{
      next();
 }
 
-app.get('/',(req,res)=>{
+app.get('/Upload',(req,res)=>{
     res.send("Welcome to Activity Point Management");
 });
 app.get('/Login', middleware, (req,res)=>{
-    res.cookie("Test", 'nandu');
+    //res.cookie("Test", 'nandu');
     res.send("Welcome to Activity Point Management-Sign In");
-});
-app.get('/Yearly',(req,res)=>{
-    res.send("Welcome to Activity Point Management-Yearly");
 });
 app.listen(PORT, ()=>{
     console.log("Listening to port number ${PORT}");
