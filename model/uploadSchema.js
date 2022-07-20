@@ -3,7 +3,6 @@ const mongoose = require ('mongoose');
 const uploadSchema = new mongoose.Schema({
     mgitsid:{
         type:String,
-        required:true
     },
     file_url:{
         type:String,
@@ -20,15 +19,15 @@ const uploadSchema = new mongoose.Schema({
         type:String,
         required:true
     },
-    Program:{
+    Activity:{
         type:String,
         required:true
     },
-    Level:{
+    Position:{
         type:Number,
         required:true
     },
-    Position:{
+    Level:{
         type:Number,
     },
     Organizer:{

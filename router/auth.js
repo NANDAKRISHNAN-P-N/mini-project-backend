@@ -38,20 +38,21 @@ router.get('/',(req,res)=>{
 
 router.post('/Upload', async (req,res) => {
     
-    const { mgitsid, file_url, doc_name, year, Activity_head, Program, Level,
-    Position, Organizer, Start_date, End_date, Description, Points } = req.body;
+    const { doc_name, year, Activity_head, Program, Level,
+    Position, Organizer, Start_date, End_date, Description } = req.body;
 
 
-    if (!doc_name || !year || !Activity_head || !Program || !Level || !Organizer || 
-        !Start_date || !End_date || !Description ){
+    if (!doc_name || !year || !Activity_head || !Activity || !Position || !Organizer || !Level ||
+         !Start_date || !End_date || !Description ) {
             console.log(req.body);
             return res.status(422).json({ error: "Some required field not filled"});
         }
-    
+        
         try{
             const details = new Details({ mgitsid, file_url, doc_name, year, Activity_head, Program, Level,
                             Position, Organizer, Start_date, End_date, Description, Points
                         });
+            
             const detailsUpload = await details.save();
             if(detailsUpload){
                 res.status(201).json({ message: "Details uploaded successfully"});
