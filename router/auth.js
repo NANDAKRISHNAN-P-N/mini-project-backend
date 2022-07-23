@@ -1,12 +1,14 @@
 const jwt = require('jsonwebtoken');
 const { compare } = require('bcryptjs');
 const express = require('express');
-
+const {cloudinary} = require('../utils/cloudinary');
+//const bodyParser = require('body-parser')
 const router = express.Router();
 
 require('../db/connection');
 const Login = require("../model/loginSchema");
 const Details = require("../model/uploadSchema");
+//const { application } = require('express');
 
 router.get('/',(req,res)=>{
     res.send("Welcome to Activity Point Management router js");
@@ -38,26 +40,30 @@ router.get('/',(req,res)=>{
 
 router.post('/Upload', async (req,res) => {
     
-    const { doc_name, year, Activity_head, Program, Level,
-    Position, Organizer, Start_date, End_date, Description } = req.body;
+    const { mgitsid, file_url,  doc_name, year, Activity_head, Activity, Position, Level,
+           Organizer, Start_date, End_date, Description } = req.body;
 
 
-    if (!doc_name || !year || !Activity_head || !Activity || !Position || !Organizer || !Level ||
+    if ( !mgitsid || !doc_name || !year || !Activity_head || !Activity || !Position || !Organizer || !Level ||
          !Start_date || !End_date || !Description ) {
             console.log(req.body);
             return res.status(422).json({ error: "Some required field not filled"});
         }
         
         try{
-            const details = new Details({ mgitsid, file_url, doc_name, year, Activity_head, Program, Level,
-                            Position, Organizer, Start_date, End_date, Description, Points
+            const details = new Details({  mgitsid, file_url, doc_name, year, Activity_head, Activity, Level,
+                            Position, Organizer, Start_date, End_date, Description
                         });
-            
             const detailsUpload = await details.save();
             if(detailsUpload){
-                res.status(201).json({ message: "Details uploaded successfully"});
+                res.status(201).json({ 
+                    status:"SUCCESS",
+                    message: "Details uploaded successfully",
+                 });
             } else{
-                res.status(500).json({error:"Failed to Upload"})
+                res.status(500).json({
+                    status:"FAILURE",
+                    error:"Failed to Upload"})
             }
         } catch(err) {
             console.log(err);
@@ -66,8 +72,7 @@ router.post('/Upload', async (req,res) => {
 });
 
 router.post('/Login', async (req, res) => {
-    //console.log(req.body);
-    //res.json({message:"logged in"});
+    console.log(req.body);
     try{
          let token;
          const { username, password } = req.body;
@@ -80,34 +85,65 @@ router.post('/Login', async (req, res) => {
          //console.log(userLogin);
 
          if(userLogin){
-            const isMatch = await compare(password, userLogin.password);
-             
-            token = await userLogin.generateAuthToken();
-            console.log(token);
 
-            // res.cookie("jwtoken", token, {
-            //     expires:new Date(Date.now() + 25892000000),
-            //     httpOnly:true
-            // });
-
-            if(isMatch){
-                res.status(400).json({error:"invalid credentials"});
+            if(password != userLogin.password){
+                return res.status(400).json({
+                    status:"FAILED",
+                    message:"user log in failed",
+                    token: " ",
+                    role: " "
+                });
             }else{
+                token = await userLogin.generateAuthToken();
+                console.log(token);
                 res.json({
                     status:"SUCCESS",
                     message:"user logged in successfully",
                     token: token,
-                    role: userLogin.userType
+                    role: userLogin.userType,
+                    userid: userLogin.username
                 })
             }
          }else{
-            res.status(400).json({error:"invalid credentials"});
+            return res.status(400).res.json({
+                status:"FAILED",
+                message:"user log in failed",
+                token: " ",
+                role: " "
+            });
          }     
     }catch(err){
         console.log(err);
     }
 })
 
-//router.patch()
+// router.use(express.json({ limit: '50mb' }));
+// router.use(express.urlencoded({ limit: '50mb', extended:true}));
+//router.use(bodyParser.json({ limit: '50mb' }));
+//router.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
+router.post('/Imageupload', async(req, res) =>{
+    try{
+        console.log("Inside Imageupload");
+        const filestr = req.body.body;
+        const student = req.body.userId;
+        console.log(filestr);
+        console.log(req.body.userId);
+        const uploadedResponse = await cloudinary.uploader.upload(filestr, {
+            upload_preset: 'ml_default'
+        })
+        console.log(uploadedResponse);
+        res.json({
+            message:"FILE UPLOADED SUCCESSFULLY"
+        })
+         await Details.findOneAndUpdate({ mgitsid:student , file_url:student+'url' },
+                                         {file_url: uploadedResponse.url},{ new: true }) ;
+    }catch(error){
+        console.error(error);
+        res.status(500).json({
+            error:'Something went wrong'
+        })
+    }
+})
 
 module.exports = router ;

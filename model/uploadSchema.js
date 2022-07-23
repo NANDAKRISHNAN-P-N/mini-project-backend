@@ -24,11 +24,12 @@ const uploadSchema = new mongoose.Schema({
         required:true
     },
     Position:{
-        type:Number,
+        type:String,
         required:true
     },
     Level:{
-        type:Number,
+        type:String,
+        required:true
     },
     Organizer:{
         type:String,
