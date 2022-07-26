@@ -8,6 +8,7 @@ const router = express.Router();
 require('../db/connection');
 const Login = require("../model/loginSchema");
 const Details = require("../model/uploadSchema");
+const Student = require("../model/studentSchema");
 //const { application } = require('express');
 
 router.get('/',(req,res)=>{
@@ -144,6 +145,74 @@ router.post('/Imageupload', async(req, res) =>{
             error:'Something went wrong'
         })
     }
+})
+
+router.post('/fetchFirstyear', async(req,res) =>{
+    try{
+        console.log(req.body);
+        const who = req.body.student;
+        console.log(who);
+        const needed = await Details.find( { mgitsid:who , year:1 });
+        console.log(needed);
+        if(needed.length !=0 ){
+        res.json({
+            message:"details fetched",
+            data:needed
+        })}
+        else{
+            res.status(404).json({
+                error:"No matching documents"
+            })
+        }
+    }catch(error){
+        console.log(error);
+        res.status(404).json({
+            err:"fetch failed"
+        })
+    }
+});
+
+router.post('/filterStudents',async(req,res) =>{
+    try{
+        console.log("batch:", req.body.batch);
+        console.log("branch:",req.body.branch);
+        const batch = req.body.batch;
+        const branch = req.body.branch;
+        const st = await Student.find( { batch:batch, branch:branch })
+        console.log(st);
+        if(st.length != 0){
+            res.json({
+                message:"students fetched",
+                data:st
+            })
+        }else{
+            res.status(404).json({
+                error:"No matchings found"
+            })
+        }
+    }catch(error){
+           console.log("exeption from find");
+           console.log(error);
+    }
+})
+
+router.patch('/resetPassword', async(req,res) =>{
+     try{
+          const username = req.body.username;
+          const password = req.body.password;
+          const cpassword = req.body.cpassword;
+          console.log(username,password,cpassword);
+          if( password == cpassword){
+             const upda = await Login.findOneAndUpdate({username : username}, {password : password},{new:true})
+             if(upda){
+                console.log(upda);
+                res.json({
+                    status:"SUCCESS"
+                })
+          }}
+     }catch(error){
+         console.log(error);
+     }
 })
 
 module.exports = router ;

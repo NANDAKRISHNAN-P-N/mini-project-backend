@@ -47,6 +47,10 @@ const uploadSchema = new mongoose.Schema({
         type:String,
         required:true
     },
+    Status:{
+        type:String,
+        default:"Not Verified"
+    },
     Points:{
         type:Number,
         default:0
