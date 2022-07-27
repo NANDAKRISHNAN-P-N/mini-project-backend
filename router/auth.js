@@ -215,4 +215,32 @@ router.patch('/resetPassword', async(req,res) =>{
      }
 })
 
+
+router.post('/fetchUploads', async(req,res) => {
+    try{
+         Batch = req.body.batch;
+         Branch = req.body.branch;
+         Name = req.body.name;
+         Year = req.body.year;
+         const x = await Student.find({ batch:Batch , branch: Branch , name: Name})
+         console.log(x);
+         const mgtemp = x[0].MgitsId;
+         console.log(mgtemp);
+         const det = await Details.find({ mgitsid:mgtemp , year:Year })
+         console.log(det);
+         if(det.length!=0){
+            res.json({
+                message:"details fetched",
+                status:"SUCCESS",
+                data: det
+            })
+         }else{
+            res.status(404).json({
+                error:"No matchings for this student"
+            })
+         }
+    }catch(error){
+        console.log(error);
+    }
+})
 module.exports = router ;
