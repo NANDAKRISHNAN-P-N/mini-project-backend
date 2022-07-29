@@ -9,6 +9,7 @@ require('../db/connection');
 const Login = require("../model/loginSchema");
 const Details = require("../model/uploadSchema");
 const Student = require("../model/studentSchema");
+const { findOneAndUpdate } = require('../model/uploadSchema');
 //const { application } = require('express');
 
 router.get('/',(req,res)=>{
@@ -50,6 +51,10 @@ router.post('/Upload', async (req,res) => {
             console.log(req.body);
             return res.status(422).json({ error: "Some required field not filled"});
         }
+    const isMatch= Details.find({doc_name:doc_name, year:year,mgitsid:mgitsid});
+    if(isMatch){
+        return res.status(422).json({error:"Document name already exist in this year"});
+    }
         
         try{
             const details = new Details({  mgitsid, file_url, doc_name, year, Activity_head, Activity, Level,
@@ -81,12 +86,9 @@ router.post('/Login', async (req, res) => {
          if(!username || !password){
             return res.status(400).json({error:"Required field empty"})
          }
-
          const userLogin = await Login.findOne({username: username});  
-         //console.log(userLogin);
 
          if(userLogin){
-
             if(password != userLogin.password){
                 return res.status(400).json({
                     status:"FAILED",
@@ -140,7 +142,7 @@ router.post('/Imageupload', async(req, res) =>{
          await Details.findOneAndUpdate({ mgitsid:student , file_url:student+'url' },
                                          {file_url: uploadedResponse.url},{ new: true }) ;
     }catch(error){
-        console.error(error);
+        console.log(error);
         res.status(500).json({
             error:'Something went wrong'
         })
@@ -151,8 +153,9 @@ router.post('/fetchFirstyear', async(req,res) =>{
     try{
         console.log(req.body);
         const who = req.body.student;
+        const year = req.body.year;
         console.log(who);
-        const needed = await Details.find( { mgitsid:who , year:1 });
+        const needed = await Details.find( { mgitsid:who , year:year });
         console.log(needed);
         if(needed.length !=0 ){
         res.json({
@@ -241,6 +244,360 @@ router.post('/fetchUploads', async(req,res) => {
          }
     }catch(error){
         console.log(error);
+    }
+})
+
+
+router.post('/calculateAP', async(req,res) => {
+    try{
+        const Batch = req.body.batch;
+        const Branch = req.body.branch;
+        const name = req.body.name;
+        const year = req.body.year;
+        const document = req.body.document;
+        console.log(name+" "+year+" "+document+" "+Batch+" "+Branch);
+        const x = await Student.find({ batch:Batch , branch: Branch , name: name})
+        console.log(x);
+        const mgtemp = x[0].MgitsId;
+        console.log(mgtemp);
+        const det = await Details.find({ mgitsid:mgtemp , year:year , doc_name:document })
+        console.log(det);
+        const activityhead = det[0].Activity_head;
+        const activity = det[0].Activity;
+        const position = det[0].Position;
+        const level = det[0].Level;
+        const organizer = det[0].Organizer;
+        console.log(level);
+        let newp = 0;
+        if(activityhead == 'National Initiatives'){
+            let diff = (det[0].End_date.getTime() - det[0].Start_date.getTime())/1000;
+            diff /= (60 * 60 * 24);
+            diff = Math.round(diff/365.25)
+            console.log(diff);
+            if(activity == 'NCC'){
+                 if(diff<2){
+                    res.json({
+                        message:"Years of working minimum 2 needed"
+                    })
+                 }else{
+                    if(position=='C Certification'){
+                        newp=80;
+                    }else if(position == 'Pre Republic Day Camp'){
+                        newp=70;
+                    }else if(position='Republic Day Camp'){
+                        newp=80;
+                    }
+                 }
+            }else{
+                if(diff<2){
+                    res.json({
+                        message:"Years of working minimum 2 needed"
+                    })}else{
+                        if(position=='C Certification'){
+                            newp=80;
+                        }else if(position == 'Pre Republic Day Camp'){
+                            newp=70;
+                        }else if(position=='Republic Day Camp'){
+                            newp=80;
+                        }else if(position=='Best NSS Volunteer'){
+                            newp=70;
+                        }
+                    }
+            }
+            const assign = await Details.findOneAndUpdate({_id:det[0]._id},{Points:newp,Status:"verified"},{new:true});
+            if(assign){
+                res.json({
+                    status:"SUCCESS",
+                    message:"Points calculated",
+                    data:assign
+                })
+            }else{
+                res.json(error)({
+                    error:"Something went wrong in calculation"
+                })
+            }
+        }else if(activityhead=='Cultural Activities'){
+            if(activity=="Music" || activity=="Performing Arts" || activity=="Literary Arts"){
+                if(level=='Level 1'){
+                    if(position=='1'){
+                        newp=18;
+                    }else if(position=='2'){
+                        newp=16;
+                    }else if(position=='3'){
+                        newp=13;
+                    }else if(position=='Participation'){
+                        newp=8;
+                    }
+                 }else if(level=='Level 2'){
+                    if(position=='1'){
+                        newp=22;
+                    }else if(position=='2'){
+                        newp=20;
+                    }else if(position=='3'){
+                        newp=17;
+                    }else if(position=='Participation'){
+                        newp=12;
+                    }
+                 }else if(level=='Level 3'){
+                    if(position=='1'){
+                        newp=30;
+                    }else if(position=='2'){
+                        newp=28;
+                    }else if(position=='3'){
+                        newp=25;
+                    }else if(position=='Participation'){
+                        newp=20;
+                    }
+                 }else if(level=='Level 4'){
+                    if(position=='1'){
+                        newp=60;
+                    }else if(position=='2'){
+                        newp=56;
+                    }else if(position=='3'){
+                        newp=52;
+                    }else if(position=='Participation'){
+                        newp=40;
+                    }else if(level=='Level 5'){
+                        console.log("uf");
+                        if(position=='1'){
+                            newp=80;
+                        }else if(position=='2'){
+                            newp=76;
+                        }else if(position=='3'){
+                            newp=72;
+                        }else if(position=='Participation'){
+                            newp=60;
+                        }
+                     }
+                 }
+            }
+            const assign = await Details.findOneAndUpdate({_id:det[0]._id},{Points:newp,Status:"verified"},{new:true});
+            if(assign){
+                res.json({
+                    status:"SUCCESS",
+                    message:"Points calculated",
+                    data:assign
+                })
+            }else{
+                res.json(error)({
+                    error:"Something went wrong in calculation"
+                })
+            }
+        }else if(activityhead=='Sports and Games'){
+            if(activity =='Sports' || activity =='Games'){
+                if(level =='Level 1'){
+                    if(position=='1'){
+                        newp=18;
+                    }else if(position=='2'){
+                        newp=16;
+                    }else if(position=='3'){
+                        newp=13;
+                    }else if(position=='Participation'){
+                        newp=8;
+                    }
+                }else if(level =='Level 2'){
+                    if(position=='1'){
+                        newp=25;
+                    }else if(position=='2'){
+                        newp=23;
+                    }else if(position=='3'){
+                        newp=20;
+                    }else if(position=='Participation'){
+                        newp=15;
+                    }
+                }else if(level =='Level 3'){
+                    if(position=='1'){
+                        newp=35;
+                    }else if(position=='2'){
+                        newp=33;
+                    }else if(position=='3'){
+                        newp=30;
+                    }else if(position=='Participation'){
+                        newp=25;
+                    }
+                }else if(level =='Level 4'){
+                    if(position=='1'){
+                        newp=60;
+                    }else if(position=='2'){
+                        newp=56;
+                    }else if(position=='3'){
+                        newp=52;
+                    }else if(position=='Participation'){
+                        newp=40;
+                    }
+                }else if(level =='Level 5'){
+                    if(position=='1'){
+                        newp=80;
+                    }else if(position=='2'){
+                        newp=76;
+                    }else if(position=='3'){
+                        newp=72;
+                    }else if(position=='Participation'){
+                        newp=60;
+                    }
+                }
+            }
+            const assign = await Details.findOneAndUpdate({_id:det[0]._id},{Points:newp,Status:"verified"},{new:true});
+            if(assign){
+                res.json({
+                    status:"SUCCESS",
+                    message:"Points calculated",
+                    data:assign
+                })
+            }else{
+                res.json(error)({
+                    error:"Something went wrong in calculation"
+                })
+            }
+        }else if(activityhead=='Proffessional Self Initiatives'){
+            if(activity=='Tech Fest' || activity=='Tech Quiz'){
+                if(level=="Level 1"){
+                    newp=10;
+                }else if(level=='Level 2'){
+                    newp=20;
+                }else if(level=='Level 3'){
+                    newp=30;
+                }else if(level=='Level 4'){
+                    newp=40;
+                }else if(level=='Level 5'){
+                    newp=50;
+                }
+            }else if(activity=="MOOC"){
+                newp=50;
+            }else if(activity=='Competition conducted by Proffessional societies'){
+                if(level=="Level 1"){
+                    newp=10;
+                }else if(level=='Level 2'){
+                    newp=15;
+                }else if(level=='Level 3'){
+                    newp=20;
+                }else if(level=='Level 4'){
+                    newp=30;
+                }else if(level=='Level 5'){
+                    newp=40;
+                }
+            }else if(activity=="Attending Conference/Seminar/Workshop/Exhibition" || activity=="Short Term Training Program"){
+                if(organizer=="IITS" || organizer=="NITS"){
+                    newp=15;
+                }else{
+                    newp=6;
+                }
+            }else if(activity=='Paper presentation' || activity=='Paper Publication'){
+                if(organizer=='IITS' || organizer=='NITS'){
+                    if(position=='Certificate of Recognition'){
+                        newp=30;
+                    }else{
+                        newp=20;
+                    }
+                }else{
+                    if(position=='Certificate of Recognition'){
+                        newp=10;
+                    }else{
+                        newp=8;
+                    }
+                }
+            }else if(activity=='Poster Presentation'){
+                if(organizer=='IITS' || organizer=='NITS'){
+                    if(position=='Certificate of Recognition'){
+                        newp=20;
+                    }else{
+                        newp=10;
+                    }
+                }else{
+                    if(position=='Certificate of Recognition'){
+                        newp=6;
+                    }else{
+                        newp=4;
+                    }
+                }
+            }else if(activity=="Industrial Training/Internship(5days)"){
+                newp=20;
+            }else if(activity=="Industrial/Exhibition Visit"){
+                newp=5;
+            }else if(activity=="Foreign Language Skills(IELTS,BEC,TOEFL)"){
+                newp=50;
+            }
+            const assign = await Details.findOneAndUpdate({_id:det[0]._id},{Points:newp,Status:"verified"},{new:true});
+            if(assign){
+                res.json({
+                    status:"SUCCESS",
+                    message:"Points calculated",
+                    data:assign
+                })
+            }else{
+                res.json(error)({
+                    error:"Something went wrong in calculation"
+                })
+            }
+        }else if(activityhead=="Entrepreneurship and Innovation"){
+            if(activity=="StartUpCompany"){
+                newp=60;
+            }else if(activity=="Patent-Filed"){
+                newp=30;
+            }else if(activity=="Patent-Published"){
+                newp=35;
+            }else if(activity=="Patent-Approved"){
+                newp=50;
+            }else if(activity=="Patent-Licensed"){
+                newp=80;
+            }else if(activity=="Prototype developed and tested"){
+                newp=60;
+            }else if(activity=="Awards for product developed"){
+                newp=60;
+            }else if(activity=="Innovative Technologies Developed"){
+                newp=60;
+            }else if(activity=="Got Venture Capital Funding for Innovative idea?Products"){
+                newp=80;
+            }else if(activity=="Start Employment"){
+                newp=80;
+            }else if(activity=="Societal Innovations"){
+                newp=50;
+            }
+            const assign = await Details.findOneAndUpdate({_id:det[0]._id},{Points:newp,Status:"verified"},{new:true});
+            if(assign){
+                res.json({
+                    status:"SUCCESS",
+                    message:"Points calculated",
+                    data:assign
+                })
+            }else{
+                res.json(error)({
+                    error:"Something went wrong in calculation"
+                })
+            }
+        }else if(activityhead=="Leadership and Management"){
+            if(activity=="Student Proffessional Societies" || activity=="College Association Chapters" || activity=="Festival or Technical Events" || activity=="Hobby Clubs"){
+                if(position=="Core coordinator"){
+                    newp=15;
+                }else if(position=="Sub Coordinator"){
+                    newp=10;
+                }else if(position=="Volunteer"){
+                    newp=5;
+                }
+            }else if(activity=="Elected student representatives"){
+                if(position=="Chairman"){
+                    newp=30;
+                }else if(position=="Secretary"){
+                    newp=25;
+                }else if(position=="Council Member"){
+                    newp=15;
+                }
+            }
+            const assign = await Details.findOneAndUpdate({_id:det[0]._id},{Points:newp,Status:"verified"},{new:true});
+            if(assign){
+                res.json({
+                    status:"SUCCESS",
+                    message:"Points calculated",
+                    data:assign
+                })
+            }else{
+                res.json(error)({
+                    error:"Something went wrong in calculation"
+                })
+            }
+        }
+    }catch(error){
+          console.log(error);
     }
 })
 module.exports = router ;
